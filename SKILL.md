@@ -19,24 +19,22 @@ metadata:
 
 Interact with Airtable bases, tables, and records using the official Airtable Web API.
 
-## Authentication Options
+## Authentication (OAuth)
 
-### Option 1: OAuth (Recommended)
-
-OAuth provides the best user experience - users click "Connect" and authorize via Airtable's website.
+This CLI uses OAuth for secure authentication. Users authorize via Airtable's website and tokens are stored locally with automatic refresh.
 
 **Step 1: Register an OAuth Integration**
 1. Go to https://airtable.com/create/oauth
 2. Create a new integration with:
    - Name: Your app name
    - Redirect URL: `http://localhost:4000/callback`
-3. Select scopes (recommended):
+3. Select scopes:
    - `data.records:read` - Read records
    - `data.records:write` - Create/update/delete records
    - `schema.bases:read` - Read base/table schemas
    - `schema.bases:write` - Create tables/fields
    - `webhook:manage` - Manage webhooks
-4. Save your Client ID and Client Secret
+4. Save your Client ID and generate a Client Secret
 
 **Step 2: Configure in moltbot**
 
@@ -63,25 +61,6 @@ airtable auth login
 ```
 
 This opens your browser to authorize. Tokens are stored securely in `~/.clawdbot/credentials/airtable.json`.
-
-### Option 2: Personal Access Token (Simpler)
-
-For personal use or testing, use a PAT instead of OAuth.
-
-1. Create a token at https://airtable.com/create/tokens
-2. Configure in `~/.clawdbot/clawdbot.json`:
-```json
-{
-  "skills": {
-    "entries": {
-      "airtable": {
-        "enabled": true,
-        "apiKey": "pat.xxxxxxx.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-      }
-    }
-  }
-}
-```
 
 ## Available Commands
 

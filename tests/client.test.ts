@@ -1,5 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+// Mock oauth module before importing client
+vi.mock('../src/lib/oauth.js', () => ({
+  loadTokens: vi.fn(() => null),
+  isTokenExpired: vi.fn(() => true),
+  refreshAccessToken: vi.fn(),
+  saveTokens: vi.fn(),
+}));
+
 import { AirtableClient, createClient } from '../src/lib/client.js';
+import { loadTokens } from '../src/lib/oauth.js';
 
 // Mock fetch globally
 const mockFetch = vi.fn();
@@ -44,24 +54,9 @@ describe('AirtableClient', () => {
     });
 
     it('should throw error when no credentials available', () => {
-      const originalEnv = process.env.AIRTABLE_API_KEY;
-      delete process.env.AIRTABLE_API_KEY;
-
       expect(() => createClient()).toThrow(
         'No Airtable credentials found'
       );
-
-      process.env.AIRTABLE_API_KEY = originalEnv;
-    });
-
-    it('should use AIRTABLE_API_KEY env var when no key provided', () => {
-      const originalEnv = process.env.AIRTABLE_API_KEY;
-      process.env.AIRTABLE_API_KEY = 'env-api-key';
-
-      const client = createClient();
-      expect(client).toBeInstanceOf(AirtableClient);
-
-      process.env.AIRTABLE_API_KEY = originalEnv;
     });
   });
 

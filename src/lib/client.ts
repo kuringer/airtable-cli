@@ -21,6 +21,7 @@ import type {
   UpsertParams,
   RecordFields,
 } from './types.js';
+import { loadTokens, isTokenExpired, refreshAccessToken, saveTokens } from './oauth.js';
 
 const DEFAULT_BASE_URL = 'https://api.airtable.com/v0';
 
@@ -532,35 +533,23 @@ export function createClient(apiKey?: string): AirtableClient {
   }
 
   // Try to load OAuth tokens
-  try {
-    const { loadTokens, isTokenExpired, refreshAccessToken, saveTokens } = require('./oauth.js');
-    const tokens = loadTokens();
+  const tokens = loadTokens();
 
-    if (tokens) {
-      // Check if token needs refresh
-      if (isTokenExpired(tokens) && tokens.refresh_token) {
-        // Note: This is synchronous context, so we can't refresh here
-        // The token will need to be refreshed via 'auth status' or 'auth login'
-        console.warn('OAuth token expired. Run "airtable auth login" to refresh.');
-      } else if (!isTokenExpired(tokens)) {
-        return new AirtableClient({ apiKey: tokens.access_token });
-      }
+  if (tokens) {
+    // Check if token needs refresh
+    if (isTokenExpired(tokens) && tokens.refresh_token) {
+      // Note: This is synchronous context, so we can't refresh here
+      // The token will need to be refreshed via 'auth status' or 'auth login'
+      console.warn('OAuth token expired. Run "airtable auth login" to refresh.');
+    } else if (!isTokenExpired(tokens)) {
+      return new AirtableClient({ apiKey: tokens.access_token });
     }
-  } catch {
-    // OAuth module not available or failed, continue to env var
   }
 
-  // Fall back to environment variable
-  const key = process.env.AIRTABLE_API_KEY;
-  if (!key) {
-    throw new Error(
-      'No Airtable credentials found.\n' +
-      'Options:\n' +
-      '  1. Run "airtable auth login" to authenticate with OAuth\n' +
-      '  2. Set AIRTABLE_API_KEY environment variable with a Personal Access Token'
-    );
-  }
-  return new AirtableClient({ apiKey: key });
+  throw new Error(
+    'No Airtable credentials found.\n' +
+    'Run "airtable auth login" to authenticate with OAuth'
+  );
 }
 
 /**
@@ -573,42 +562,30 @@ export async function createClientAsync(apiKey?: string): Promise<AirtableClient
   }
 
   // Try to load OAuth tokens with refresh support
-  try {
-    const { loadTokens, isTokenExpired, refreshAccessToken, saveTokens } = await import('./oauth.js');
-    const tokens = loadTokens();
+  const tokens = loadTokens();
 
-    if (tokens) {
-      // Check if token needs refresh
-      if (isTokenExpired(tokens) && tokens.refresh_token) {
-        const clientId = process.env.AIRTABLE_CLIENT_ID;
-        const clientSecret = process.env.AIRTABLE_CLIENT_SECRET;
+  if (tokens) {
+    // Check if token needs refresh
+    if (isTokenExpired(tokens) && tokens.refresh_token) {
+      const clientId = process.env.AIRTABLE_CLIENT_ID;
+      const clientSecret = process.env.AIRTABLE_CLIENT_SECRET;
 
-        if (clientId) {
-          try {
-            const newTokens = await refreshAccessToken(tokens.refresh_token, { clientId, clientSecret });
-            saveTokens(newTokens);
-            return new AirtableClient({ apiKey: newTokens.access_token });
-          } catch (refreshError) {
-            console.warn('Failed to refresh token. Please run "airtable auth login".');
-          }
+      if (clientId) {
+        try {
+          const newTokens = await refreshAccessToken(tokens.refresh_token, { clientId, clientSecret });
+          saveTokens(newTokens);
+          return new AirtableClient({ apiKey: newTokens.access_token });
+        } catch {
+          console.warn('Failed to refresh token. Please run "airtable auth login".');
         }
-      } else if (!isTokenExpired(tokens)) {
-        return new AirtableClient({ apiKey: tokens.access_token });
       }
+    } else if (!isTokenExpired(tokens)) {
+      return new AirtableClient({ apiKey: tokens.access_token });
     }
-  } catch {
-    // OAuth module not available or failed, continue to env var
   }
 
-  // Fall back to environment variable
-  const key = process.env.AIRTABLE_API_KEY;
-  if (!key) {
-    throw new Error(
-      'No Airtable credentials found.\n' +
-      'Options:\n' +
-      '  1. Run "airtable auth login" to authenticate with OAuth\n' +
-      '  2. Set AIRTABLE_API_KEY environment variable with a Personal Access Token'
-    );
-  }
-  return new AirtableClient({ apiKey: key });
+  throw new Error(
+    'No Airtable credentials found.\n' +
+    'Run "airtable auth login" to authenticate with OAuth'
+  );
 }
