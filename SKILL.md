@@ -55,12 +55,17 @@ Add to `~/.clawdbot/clawdbot.json`:
 }
 ```
 
-**Step 3: Login**
+**Step 3: Login (run locally)**
+
+**IMPORTANT**: Run this command in your **local terminal**, not through moltbot/WhatsApp:
+
 ```bash
 airtable auth login
 ```
 
-This opens your browser to authorize. Tokens are stored securely in `~/.clawdbot/credentials/airtable.json`.
+This starts a local callback server and opens your browser. After you click "Grant access", the server receives the authorization code and stores tokens securely at `~/.clawdbot/credentials/airtable.json`.
+
+Once logged in, you can use moltbot to interact with Airtable.
 
 ## Available Commands
 

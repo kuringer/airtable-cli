@@ -63,13 +63,17 @@ export AIRTABLE_CLIENT_SECRET="your_client_secret"
 }
 ```
 
-### Step 5: Login
+### Step 5: Login (run locally)
+
+**IMPORTANT**: Run this command in your **local terminal** (not through moltbot/WhatsApp):
 
 ```bash
 airtable auth login
 ```
 
-This opens your browser to authorize. After clicking "Grant access", tokens are stored securely at `~/.clawdbot/credentials/airtable.json`.
+This starts a local callback server on port 4000 and opens your browser. After clicking "Grant access", the server receives the authorization code and stores tokens at `~/.clawdbot/credentials/airtable.json`.
+
+Once logged in, you can use moltbot/clawdbot to interact with Airtable.
 
 ## Commands
 
