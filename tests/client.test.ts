@@ -43,12 +43,12 @@ describe('AirtableClient', () => {
       expect(client).toBeInstanceOf(AirtableClient);
     });
 
-    it('should throw error when no API key provided and no env var', () => {
+    it('should throw error when no credentials available', () => {
       const originalEnv = process.env.AIRTABLE_API_KEY;
       delete process.env.AIRTABLE_API_KEY;
 
       expect(() => createClient()).toThrow(
-        'Airtable API key is required'
+        'No Airtable credentials found'
       );
 
       process.env.AIRTABLE_API_KEY = originalEnv;

@@ -11,26 +11,65 @@ metadata:
       bins:
         - node
       env:
-        - AIRTABLE_API_KEY
-    primaryEnv: AIRTABLE_API_KEY
+        - AIRTABLE_CLIENT_ID
+    primaryEnv: AIRTABLE_CLIENT_ID
 ---
 
 # Airtable CLI Skill
 
 Interact with Airtable bases, tables, and records using the official Airtable Web API.
 
-## Setup
+## Authentication Options
 
-1. Create a Personal Access Token at https://airtable.com/create/tokens
-2. Grant appropriate scopes:
+### Option 1: OAuth (Recommended)
+
+OAuth provides the best user experience - users click "Connect" and authorize via Airtable's website.
+
+**Step 1: Register an OAuth Integration**
+1. Go to https://airtable.com/create/oauth
+2. Create a new integration with:
+   - Name: Your app name
+   - Redirect URL: `http://localhost:4000/callback`
+3. Select scopes (recommended):
    - `data.records:read` - Read records
    - `data.records:write` - Create/update/delete records
    - `schema.bases:read` - Read base/table schemas
    - `schema.bases:write` - Create tables/fields
    - `webhook:manage` - Manage webhooks
-   - `comment:read` / `comment:write` - Manage comments
+4. Save your Client ID and Client Secret
 
-3. Configure in `~/.clawdbot/moltbot.json`:
+**Step 2: Configure in moltbot**
+
+Add to `~/.clawdbot/clawdbot.json`:
+```json
+{
+  "skills": {
+    "entries": {
+      "airtable": {
+        "enabled": true,
+        "env": {
+          "AIRTABLE_CLIENT_ID": "your_client_id_here",
+          "AIRTABLE_CLIENT_SECRET": "your_client_secret_here"
+        }
+      }
+    }
+  }
+}
+```
+
+**Step 3: Login**
+```bash
+airtable auth login
+```
+
+This opens your browser to authorize. Tokens are stored securely in `~/.clawdbot/credentials/airtable.json`.
+
+### Option 2: Personal Access Token (Simpler)
+
+For personal use or testing, use a PAT instead of OAuth.
+
+1. Create a token at https://airtable.com/create/tokens
+2. Configure in `~/.clawdbot/clawdbot.json`:
 ```json
 {
   "skills": {
@@ -48,11 +87,20 @@ Interact with Airtable bases, tables, and records using the official Airtable We
 
 ### Authentication
 ```bash
-# Verify API key is valid
-airtable auth check
+# Login with OAuth (opens browser)
+airtable auth login
+
+# Check authentication status
+airtable auth status
+
+# Logout and delete stored credentials
+airtable auth logout
 
 # Get current user info and scopes
 airtable auth whoami
+
+# Verify connection is valid
+airtable auth check
 ```
 
 ### Bases
@@ -196,11 +244,22 @@ All commands support `--format` option:
 - `table` - ASCII table format
 - `csv` - CSV format (for records)
 
+## Credential Storage
+
+- **OAuth tokens**: `~/.clawdbot/credentials/airtable.json` (mode 0600)
+- **Token refresh**: Automatic when using OAuth with refresh tokens
+
 ## Rate Limits
 
 Airtable API has a rate limit of 5 requests per second per base. The CLI does not implement rate limiting - consider this when making batch operations.
 
 ## Examples
+
+### Login and list bases
+```bash
+airtable auth login
+airtable bases list --format table
+```
 
 ### List all records with filtering
 ```bash
