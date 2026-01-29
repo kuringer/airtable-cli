@@ -46,7 +46,7 @@ export AIRTABLE_CLIENT_ID="your_client_id"
 export AIRTABLE_CLIENT_SECRET="your_client_secret"
 ```
 
-**Option B: Moltbot/Clawdbot Config** (`~/.clawdbot/clawdbot.json`)
+**Option B: Moltbot Config** (`~/.moltbot/moltbot.json` or `~/.clawdbot/clawdbot.json`)
 ```json
 {
   "skills": {
@@ -63,17 +63,32 @@ export AIRTABLE_CLIENT_SECRET="your_client_secret"
 }
 ```
 
-### Step 5: Login (run locally)
+### Step 5: Login
 
-**IMPORTANT**: Run this command in your **local terminal** (not through moltbot/WhatsApp):
-
+**If the CLI runs on your local machine:**
 ```bash
 airtable auth login
 ```
+Browser opens → click "Grant access" → done!
 
-This starts a local callback server on port 4000 and opens your browser. After clicking "Grant access", the server receives the authorization code and stores tokens at `~/.clawdbot/credentials/airtable.json`.
+**If the CLI runs remotely (server, moltbot, etc):**
+```bash
+airtable auth login --manual
+```
 
-Once logged in, you can use moltbot/clawdbot to interact with Airtable.
+1. Copy the URL shown and open it in **your browser** (phone, laptop, anywhere)
+2. Sign in to Airtable and click "Grant access"
+3. You'll see an error page - **that's normal!** Look at the URL bar:
+   ```
+   http://localhost:4000/callback?code=abc123xyz&state=...
+                                       ───────────
+                                       ↑ COPY THIS
+   ```
+4. Paste that code into the CLI
+
+> **Why the error page?** The redirect goes to `localhost:4000` (your machine) but the CLI is on the server. You just need the code from the URL, not the page itself.
+
+Tokens are stored at `~/.moltbot/credentials/airtable.json` (or `~/.clawdbot/credentials/` for backwards compatibility).
 
 ## Commands
 
@@ -241,7 +256,8 @@ airtable records update-batch -b appXXXXXX -t "Tasks" \
 
 ## Token Storage
 
-- **OAuth tokens**: `~/.clawdbot/credentials/airtable.json` (mode 0600)
+- **OAuth tokens**: `~/.moltbot/credentials/airtable.json` (mode 0600)
+- **Backwards compatibility**: Also checks `~/.clawdbot/credentials/airtable.json`
 - Tokens auto-refresh when expired (if refresh token available)
 - Run `airtable auth login` if refresh fails
 
@@ -258,14 +274,16 @@ npm test             # Run tests (114 tests)
 npm run lint         # Run linter
 ```
 
-## Moltbot/Clawdbot Integration
+## Moltbot Integration
 
 1. Symlink the skill:
 ```bash
-ln -s /path/to/airtable-cli ~/.clawdbot/skills/airtable
+ln -s /path/to/airtable-cli ~/.moltbot/skills/airtable
+# Or for legacy clawdbot installations:
+# ln -s /path/to/airtable-cli ~/.clawdbot/skills/airtable
 ```
 
-2. Configure in `~/.clawdbot/clawdbot.json` (see above)
+2. Configure in your moltbot config (see Option B above)
 
 3. The skill reads `SKILL.md` for command descriptions and injects environment variables automatically.
 

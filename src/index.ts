@@ -23,7 +23,7 @@ program
 // Global options
 program.option(
   '-k, --api-key <key>',
-  'Airtable API key (or set AIRTABLE_API_KEY env var)'
+  'OAuth access token (if not using stored credentials)'
 );
 
 // Add all command groups

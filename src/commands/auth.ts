@@ -7,8 +7,13 @@ import {
   deleteTokens,
   isTokenExpired,
   getValidAccessToken,
+  createAuthState,
+  buildAuthorizationUrl,
+  exchangeCodeForTokens,
+  saveTokens,
   type OAuthConfig,
 } from '../lib/oauth.js';
+import * as readline from 'readline';
 
 const SETUP_GUIDE = `
 ┌─────────────────────────────────────────────────────────────────┐
@@ -137,6 +142,7 @@ export function createAuthCommand(): Command {
     .description('Login to Airtable using OAuth (opens browser)')
     .option('--client-id <id>', 'OAuth Client ID (or set AIRTABLE_CLIENT_ID)')
     .option('--port <port>', 'Local callback server port', '4000')
+    .option('--manual', 'Manual mode: copy code from redirect URL (for remote/headless setups)')
     .action(async (options) => {
       try {
         // Check for existing valid tokens
@@ -168,6 +174,64 @@ Options:
           ...(options.port && { port: parseInt(options.port) }),
         };
 
+        // Manual mode for remote setups
+        if (options.manual) {
+          const authState = createAuthState();
+          const authUrl = buildAuthorizationUrl(config, authState);
+
+          console.log(`
+┌─────────────────────────────────────────────────────────────────┐
+│                 AIRTABLE CLI LOGIN (Manual Mode)                │
+└─────────────────────────────────────────────────────────────────┘
+
+STEP 1: Open this URL in your browser (phone, laptop, anywhere):
+
+${authUrl}
+
+STEP 2: Sign in to Airtable and click "Grant access"
+
+STEP 3: You'll see an ERROR PAGE - that's normal!
+        Look at the URL bar in your browser. It looks like:
+
+        http://localhost:4000/callback?code=abc123xyz&state=...
+                                            ──────────
+                                            ↑ COPY THIS PART
+
+STEP 4: Paste that code below.
+
+`);
+
+          const rl = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout,
+          });
+
+          const code = await new Promise<string>((resolve) => {
+            rl.question('Enter the code from the URL: ', (answer) => {
+              rl.close();
+              resolve(answer.trim());
+            });
+          });
+
+          if (!code) {
+            throw new Error('No code provided');
+          }
+
+          console.log('\nExchanging code for tokens...');
+          const tokens = await exchangeCodeForTokens(code, config, authState.codeVerifier);
+          saveTokens(tokens);
+
+          console.log(`
+┌─────────────────────────────────────────────────────────────────┐
+│                    LOGIN SUCCESSFUL!                            │
+└─────────────────────────────────────────────────────────────────┘
+
+You're now connected to Airtable.
+`);
+          return;
+        }
+
+        // Normal mode with callback server
         console.log(`
 ┌─────────────────────────────────────────────────────────────────┐
 │                    AIRTABLE CLI LOGIN                           │
@@ -181,6 +245,8 @@ What will happen:
   3. Click "Grant access" to authorize this CLI
   4. You'll be redirected back and logged in automatically
 
+TIP: Running remotely? Use: airtable auth login --manual
+
 `);
 
         await performOAuthLogin(config);
@@ -193,7 +259,7 @@ What will happen:
 You're now connected to Airtable.
 
 Your credentials are stored securely at:
-  ~/.clawdbot/credentials/airtable.json
+  ~/.moltbot/credentials/airtable.json
 
 Try these commands:
   • airtable bases list          - List your bases

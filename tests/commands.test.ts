@@ -8,18 +8,30 @@ import { createCommentsCommand } from '../src/commands/comments.js';
 import { createWebhooksCommand } from '../src/commands/webhooks.js';
 import { createAuthCommand } from '../src/commands/auth.js';
 
+// Mock oauth module to return valid tokens for tests
+vi.mock('../src/lib/oauth.js', () => ({
+  loadTokens: vi.fn(() => ({
+    access_token: 'test-oauth-token',
+    token_type: 'Bearer',
+    expires_at: Date.now() + 3600000, // 1 hour from now
+  })),
+  isTokenExpired: vi.fn(() => false),
+  refreshAccessToken: vi.fn(),
+  saveTokens: vi.fn(),
+  deleteTokens: vi.fn(),
+}));
+
 // Mock fetch globally
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
-// Set up API key for tests
+// Set up for tests
 beforeEach(() => {
-  process.env.AIRTABLE_API_KEY = 'test-api-key';
   mockFetch.mockReset();
 });
 
 afterEach(() => {
-  delete process.env.AIRTABLE_API_KEY;
+  vi.clearAllMocks();
 });
 
 describe('Records Command', () => {

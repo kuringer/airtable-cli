@@ -34,14 +34,45 @@ interface AuthState {
   state: string;
 }
 
-// Get the credentials directory path
+// Get the credentials directory path (prefer moltbot, fallback to clawdbot)
 function getCredentialsDir(): string {
   const homeDir = process.env.HOME || process.env.USERPROFILE || '';
-  return path.join(homeDir, '.clawdbot', 'credentials');
+
+  // Check for existing moltbot credentials directory
+  const moltbotDir = path.join(homeDir, '.moltbot', 'credentials');
+  if (fs.existsSync(moltbotDir)) {
+    return moltbotDir;
+  }
+
+  // Check for existing clawdbot credentials directory
+  const clawdbotDir = path.join(homeDir, '.clawdbot', 'credentials');
+  if (fs.existsSync(clawdbotDir)) {
+    return clawdbotDir;
+  }
+
+  // Default to moltbot for new installations
+  return moltbotDir;
 }
 
 function getTokenPath(): string {
   return path.join(getCredentialsDir(), 'airtable.json');
+}
+
+// Find existing token file (check both locations)
+function findExistingTokenPath(): string | null {
+  const homeDir = process.env.HOME || process.env.USERPROFILE || '';
+
+  const moltbotPath = path.join(homeDir, '.moltbot', 'credentials', 'airtable.json');
+  if (fs.existsSync(moltbotPath)) {
+    return moltbotPath;
+  }
+
+  const clawdbotPath = path.join(homeDir, '.clawdbot', 'credentials', 'airtable.json');
+  if (fs.existsSync(clawdbotPath)) {
+    return clawdbotPath;
+  }
+
+  return null;
 }
 
 /**
@@ -215,12 +246,12 @@ export function saveTokens(tokens: TokenData): void {
 }
 
 /**
- * Load tokens from the credentials file
+ * Load tokens from the credentials file (checks both moltbot and clawdbot locations)
  */
 export function loadTokens(): TokenData | null {
-  const tokenPath = getTokenPath();
+  const tokenPath = findExistingTokenPath();
 
-  if (!fs.existsSync(tokenPath)) {
+  if (!tokenPath) {
     return null;
   }
 
@@ -233,17 +264,27 @@ export function loadTokens(): TokenData | null {
 }
 
 /**
- * Delete stored tokens
+ * Delete stored tokens (removes from both moltbot and clawdbot locations if they exist)
  */
 export function deleteTokens(): boolean {
-  const tokenPath = getTokenPath();
+  const homeDir = process.env.HOME || process.env.USERPROFILE || '';
+  let deleted = false;
 
-  if (fs.existsSync(tokenPath)) {
-    fs.unlinkSync(tokenPath);
-    return true;
+  // Check and delete from moltbot location
+  const moltbotPath = path.join(homeDir, '.moltbot', 'credentials', 'airtable.json');
+  if (fs.existsSync(moltbotPath)) {
+    fs.unlinkSync(moltbotPath);
+    deleted = true;
   }
 
-  return false;
+  // Check and delete from clawdbot location
+  const clawdbotPath = path.join(homeDir, '.clawdbot', 'credentials', 'airtable.json');
+  if (fs.existsSync(clawdbotPath)) {
+    fs.unlinkSync(clawdbotPath);
+    deleted = true;
+  }
+
+  return deleted;
 }
 
 /**

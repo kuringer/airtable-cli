@@ -4,15 +4,7 @@ description: "Manage Airtable bases, tables, records, comments, and webhooks via
 homepage: https://airtable.com/developers/web/api/introduction
 repository: https://github.com/anthonyencodeclub/airtable-cli
 user-invocable: true
-metadata:
-  clawdbot:
-    emoji: 📊
-    requires:
-      bins:
-        - node
-      env:
-        - AIRTABLE_CLIENT_ID
-    primaryEnv: AIRTABLE_CLIENT_ID
+metadata: {"moltbot":{"emoji":"📊","requires":{"bins":["node"],"env":["AIRTABLE_CLIENT_ID"]},"primaryEnv":"AIRTABLE_CLIENT_ID"},"clawdbot":{"emoji":"📊","requires":{"bins":["node"],"env":["AIRTABLE_CLIENT_ID"]},"primaryEnv":"AIRTABLE_CLIENT_ID"}}
 ---
 
 # Airtable CLI Skill
@@ -38,7 +30,7 @@ This CLI uses OAuth for secure authentication. Users authorize via Airtable's we
 
 **Step 2: Configure in moltbot**
 
-Add to `~/.clawdbot/clawdbot.json`:
+Add to your moltbot config (`~/.moltbot/moltbot.json` or `~/.clawdbot/clawdbot.json`):
 ```json
 {
   "skills": {
@@ -55,17 +47,46 @@ Add to `~/.clawdbot/clawdbot.json`:
 }
 ```
 
-**Step 3: Login (run locally)**
+**Step 3: Login**
 
-**IMPORTANT**: Run this command in your **local terminal**, not through moltbot/WhatsApp:
-
+**If the CLI runs on your local machine:**
 ```bash
 airtable auth login
 ```
+Browser opens → click "Grant access" → done!
 
-This starts a local callback server and opens your browser. After you click "Grant access", the server receives the authorization code and stores tokens securely at `~/.clawdbot/credentials/airtable.json`.
+---
 
-Once logged in, you can use moltbot to interact with Airtable.
+**If the CLI runs remotely (like moltbot on a server):**
+
+```bash
+airtable auth login --manual
+```
+
+This shows you a URL. Here's what to do:
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  STEP 1: Copy the URL shown and open it in YOUR browser          │
+│          (on your phone, laptop, anywhere)                       │
+│                                                                  │
+│  STEP 2: Sign in to Airtable and click "Grant access"            │
+│                                                                  │
+│  STEP 3: You'll see an error page - THAT'S NORMAL!               │
+│          Look at the URL bar. It looks like:                     │
+│                                                                  │
+│          http://localhost:4000/callback?code=abc123xyz&state=... │
+│                                            ─────────────         │
+│                                            ↑ COPY THIS PART      │
+│                                                                  │
+│  STEP 4: Paste that code into the CLI when it asks               │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+**Why does the page show an error?**
+The redirect goes to `localhost:4000` which is your local machine - but the CLI is running on the server. That's fine! You just need the `code` from the URL, not the page itself.
+
+Once authenticated, you can use moltbot to interact with Airtable.
 
 ## Available Commands
 
@@ -230,7 +251,7 @@ All commands support `--format` option:
 
 ## Credential Storage
 
-- **OAuth tokens**: `~/.clawdbot/credentials/airtable.json` (mode 0600)
+- **OAuth tokens**: `~/.moltbot/credentials/airtable.json` or `~/.clawdbot/credentials/airtable.json` (mode 0600)
 - **Token refresh**: Automatic when using OAuth with refresh tokens
 
 ## Rate Limits

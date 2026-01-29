@@ -522,9 +522,8 @@ export class AirtableClient {
  * Create an Airtable client with automatic credential resolution.
  *
  * Priority order:
- * 1. Explicitly passed apiKey
- * 2. OAuth tokens stored in ~/.clawdbot/credentials/airtable.json
- * 3. AIRTABLE_API_KEY environment variable
+ * 1. Explicitly passed apiKey (OAuth access token)
+ * 2. OAuth tokens stored in ~/.moltbot/credentials/airtable.json or ~/.clawdbot/credentials/airtable.json
  */
 export function createClient(apiKey?: string): AirtableClient {
   // If API key is explicitly provided, use it
