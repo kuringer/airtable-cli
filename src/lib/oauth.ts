@@ -342,11 +342,55 @@ export function startCallbackServer(
         if (!code) {
           res.writeHead(400, { 'Content-Type': 'text/html' });
           res.end(`
+            <!DOCTYPE html>
             <html>
-              <body style="font-family: system-ui; padding: 40px; text-align: center;">
-                <h1 style="color: #dc2626;">Error</h1>
-                <p>No authorization code received.</p>
-                <p>You can close this window.</p>
+              <head>
+                <title>Airtable CLI - Error</title>
+                <style>
+                  * { margin: 0; padding: 0; box-sizing: border-box; }
+                  body {
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    min-height: 100vh;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                  }
+                  .card {
+                    background: white;
+                    border-radius: 16px;
+                    padding: 48px;
+                    text-align: center;
+                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+                    max-width: 400px;
+                  }
+                  .icon {
+                    width: 64px;
+                    height: 64px;
+                    background: #ef4444;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 0 auto 24px;
+                  }
+                  .icon svg { width: 32px; height: 32px; color: white; }
+                  h1 { color: #1f2937; font-size: 24px; font-weight: 600; margin-bottom: 12px; }
+                  p { color: #6b7280; font-size: 16px; line-height: 1.5; }
+                  .brand { margin-top: 32px; padding-top: 24px; border-top: 1px solid #e5e7eb; color: #9ca3af; font-size: 14px; }
+                </style>
+              </head>
+              <body>
+                <div class="card">
+                  <div class="icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                  </div>
+                  <h1>Authorization Failed</h1>
+                  <p>No authorization code received. Please try again.</p>
+                  <div class="brand">Airtable CLI</div>
+                </div>
               </body>
             </html>
           `);
@@ -358,10 +402,70 @@ export function startCallbackServer(
         // Success!
         res.writeHead(200, { 'Content-Type': 'text/html' });
         res.end(`
+          <!DOCTYPE html>
           <html>
-            <body style="font-family: system-ui; padding: 40px; text-align: center;">
-              <h1 style="color: #16a34a;">Authorization Successful!</h1>
-              <p>You can close this window and return to the terminal.</p>
+            <head>
+              <title>Airtable CLI - Connected</title>
+              <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                body {
+                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                  min-height: 100vh;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                }
+                .card {
+                  background: white;
+                  border-radius: 16px;
+                  padding: 48px;
+                  text-align: center;
+                  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+                  max-width: 400px;
+                }
+                .icon {
+                  width: 64px;
+                  height: 64px;
+                  background: #10b981;
+                  border-radius: 50%;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  margin: 0 auto 24px;
+                }
+                .icon svg { width: 32px; height: 32px; color: white; }
+                h1 {
+                  color: #1f2937;
+                  font-size: 24px;
+                  font-weight: 600;
+                  margin-bottom: 12px;
+                }
+                p {
+                  color: #6b7280;
+                  font-size: 16px;
+                  line-height: 1.5;
+                }
+                .brand {
+                  margin-top: 32px;
+                  padding-top: 24px;
+                  border-top: 1px solid #e5e7eb;
+                  color: #9ca3af;
+                  font-size: 14px;
+                }
+              </style>
+            </head>
+            <body>
+              <div class="card">
+                <div class="icon">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                </div>
+                <h1>Connected to Airtable</h1>
+                <p>Authorization successful! You can close this window and return to your terminal.</p>
+                <div class="brand">Airtable CLI</div>
+              </div>
             </body>
           </html>
         `);
