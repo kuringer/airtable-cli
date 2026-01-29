@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { createClient } from '../lib/client.js';
+import { createClientAsync } from '../lib/client.js';
 import { printOutput, printError, type OutputFormat } from '../lib/output.js';
 
 export function createRecordsCommand(): Command {
@@ -22,7 +22,7 @@ export function createRecordsCommand(): Command {
     .option('--format <format>', 'Output format (json/table/csv)', 'json')
     .action(async (options) => {
       try {
-        const client = createClient();
+        const client = await createClientAsync();
         const params = {
           view: options.view,
           filterByFormula: options.filter,
@@ -65,7 +65,7 @@ export function createRecordsCommand(): Command {
     .option('--format <format>', 'Output format (json/table)', 'json')
     .action(async (options) => {
       try {
-        const client = createClient();
+        const client = await createClientAsync();
         const record = await client.getRecord(
           options.base,
           options.table,
@@ -89,7 +89,7 @@ export function createRecordsCommand(): Command {
     .option('--format <format>', 'Output format (json/table)', 'json')
     .action(async (options) => {
       try {
-        const client = createClient();
+        const client = await createClientAsync();
         const fields = JSON.parse(options.fields);
         const record = await client.createRecord(options.base, options.table, {
           fields,
@@ -113,7 +113,7 @@ export function createRecordsCommand(): Command {
     .option('--format <format>', 'Output format (json/table)', 'json')
     .action(async (options) => {
       try {
-        const client = createClient();
+        const client = await createClientAsync();
         const recordsData = JSON.parse(options.records);
         const records = recordsData.map((r: { fields: Record<string, unknown> }) => ({
           fields: r.fields || r,
@@ -143,7 +143,7 @@ export function createRecordsCommand(): Command {
     .option('--format <format>', 'Output format (json/table)', 'json')
     .action(async (options) => {
       try {
-        const client = createClient();
+        const client = await createClientAsync();
         const fields = JSON.parse(options.fields);
         const record = await client.updateRecord(
           options.base,
@@ -170,7 +170,7 @@ export function createRecordsCommand(): Command {
     .option('--format <format>', 'Output format (json/table)', 'json')
     .action(async (options) => {
       try {
-        const client = createClient();
+        const client = await createClientAsync();
         const recordsData = JSON.parse(options.records);
         const result = await client.updateRecords(
           options.base,
@@ -200,7 +200,7 @@ export function createRecordsCommand(): Command {
     .option('--format <format>', 'Output format (json/table)', 'json')
     .action(async (options) => {
       try {
-        const client = createClient();
+        const client = await createClientAsync();
         const fields = JSON.parse(options.fields);
         const record = await client.replaceRecord(
           options.base,
@@ -228,7 +228,7 @@ export function createRecordsCommand(): Command {
     .option('--format <format>', 'Output format (json/table)', 'json')
     .action(async (options) => {
       try {
-        const client = createClient();
+        const client = await createClientAsync();
         const recordsData = JSON.parse(options.records);
         const fieldsToMergeOn = options.mergeOn.split(',');
         const result = await client.upsertRecords(options.base, options.table, {
@@ -256,7 +256,7 @@ export function createRecordsCommand(): Command {
     .option('--format <format>', 'Output format (json/table)', 'json')
     .action(async (options) => {
       try {
-        const client = createClient();
+        const client = await createClientAsync();
         const result = await client.deleteRecord(
           options.base,
           options.table,
@@ -279,7 +279,7 @@ export function createRecordsCommand(): Command {
     .option('--format <format>', 'Output format (json/table)', 'json')
     .action(async (options) => {
       try {
-        const client = createClient();
+        const client = await createClientAsync();
         const recordIds = options.records.split(',');
         const result = await client.deleteRecords(
           options.base,

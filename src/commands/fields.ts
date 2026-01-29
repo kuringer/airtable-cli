@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { createClient } from '../lib/client.js';
+import { createClientAsync } from '../lib/client.js';
 import { printOutput, printError, type OutputFormat } from '../lib/output.js';
 
 export function createFieldsCommand(): Command {
@@ -18,7 +18,7 @@ export function createFieldsCommand(): Command {
     .option('--format <format>', 'Output format (json/table)', 'json')
     .action(async (options) => {
       try {
-        const client = createClient();
+        const client = await createClientAsync();
         const fieldOptions = options.options ? JSON.parse(options.options) : undefined;
         const field = await client.createField(options.base, options.table, {
           name: options.name,
@@ -45,7 +45,7 @@ export function createFieldsCommand(): Command {
     .option('--format <format>', 'Output format (json/table)', 'json')
     .action(async (options) => {
       try {
-        const client = createClient();
+        const client = await createClientAsync();
         const params: { name?: string; description?: string } = {};
         if (options.name) params.name = options.name;
         if (options.description) params.description = options.description;

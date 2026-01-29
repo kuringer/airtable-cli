@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { createClient } from '../lib/client.js';
+import { createClientAsync } from '../lib/client.js';
 import { printOutput, printError, type OutputFormat } from '../lib/output.js';
 
 export function createBasesCommand(): Command {
@@ -14,7 +14,7 @@ export function createBasesCommand(): Command {
     .option('--format <format>', 'Output format (json/table/csv)', 'json')
     .action(async (options) => {
       try {
-        const client = createClient();
+        const client = await createClientAsync();
         if (options.all) {
           const allBases = await client.listAllBases();
           printOutput(allBases, options.format as OutputFormat);
@@ -36,7 +36,7 @@ export function createBasesCommand(): Command {
     .option('--format <format>', 'Output format (json/table)', 'json')
     .action(async (options) => {
       try {
-        const client = createClient();
+        const client = await createClientAsync();
         const schema = await client.getBaseSchema(options.base);
         printOutput(schema, options.format as OutputFormat);
       } catch (error) {

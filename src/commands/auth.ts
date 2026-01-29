@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { createClient } from '../lib/client.js';
+import { createClient, createClientAsync } from '../lib/client.js';
 import { printOutput, printError, type OutputFormat } from '../lib/output.js';
 import {
   performOAuthLogin,
@@ -395,7 +395,7 @@ ${scopes.map(s => `    • ${s}`).join('\n') || '    (unknown)'}
     .option('--format <format>', 'Output format (json/table)', 'json')
     .action(async (options) => {
       try {
-        const client = createClient();
+        const client = await createClientAsync();
         const userInfo = await client.whoAmI();
 
         if (options.format === 'json') {
@@ -422,7 +422,7 @@ ${scopes.map(s => `    • ${s}`).join('\n') || '    (unknown)'}
     .description('Quick check if authentication is working')
     .action(async () => {
       try {
-        const client = createClient();
+        const client = await createClientAsync();
         const userInfo = await client.whoAmI();
         console.log('✅ Connection successful!');
         console.log(`   User ID: ${userInfo.id}`);

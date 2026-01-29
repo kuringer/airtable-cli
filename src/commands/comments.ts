@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { createClient } from '../lib/client.js';
+import { createClientAsync } from '../lib/client.js';
 import { printOutput, printError, type OutputFormat } from '../lib/output.js';
 
 export function createCommentsCommand(): Command {
@@ -16,7 +16,7 @@ export function createCommentsCommand(): Command {
     .option('--format <format>', 'Output format (json/table)', 'json')
     .action(async (options) => {
       try {
-        const client = createClient();
+        const client = await createClientAsync();
         const response = await client.listComments(
           options.base,
           options.table,
@@ -41,7 +41,7 @@ export function createCommentsCommand(): Command {
     .option('--format <format>', 'Output format (json/table)', 'json')
     .action(async (options) => {
       try {
-        const client = createClient();
+        const client = await createClientAsync();
         const comment = await client.createComment(
           options.base,
           options.table,

@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { createClient } from '../lib/client.js';
+import { createClientAsync } from '../lib/client.js';
 import { printOutput, printError, type OutputFormat } from '../lib/output.js';
 
 export function createWebhooksCommand(): Command {
@@ -13,7 +13,7 @@ export function createWebhooksCommand(): Command {
     .option('--format <format>', 'Output format (json/table)', 'json')
     .action(async (options) => {
       try {
-        const client = createClient();
+        const client = await createClientAsync();
         const response = await client.listWebhooks(options.base);
         printOutput(response.webhooks, options.format as OutputFormat);
       } catch (error) {
@@ -32,7 +32,7 @@ export function createWebhooksCommand(): Command {
     .option('--format <format>', 'Output format (json/table)', 'json')
     .action(async (options) => {
       try {
-        const client = createClient();
+        const client = await createClientAsync();
         const specification = JSON.parse(options.spec);
         const webhook = await client.createWebhook(options.base, {
           notificationUrl: options.url,
@@ -54,7 +54,7 @@ export function createWebhooksCommand(): Command {
     .requiredOption('--enable <boolean>', 'Enable (true) or disable (false)')
     .action(async (options) => {
       try {
-        const client = createClient();
+        const client = await createClientAsync();
         const enable = options.enable === 'true';
         await client.updateWebhook(options.base, options.webhook, enable);
         console.log(`Webhook ${enable ? 'enabled' : 'disabled'} successfully.`);
@@ -72,7 +72,7 @@ export function createWebhooksCommand(): Command {
     .requiredOption('-w, --webhook <webhookId>', 'Webhook ID')
     .action(async (options) => {
       try {
-        const client = createClient();
+        const client = await createClientAsync();
         await client.deleteWebhook(options.base, options.webhook);
         console.log('Webhook deleted successfully.');
       } catch (error) {
@@ -90,7 +90,7 @@ export function createWebhooksCommand(): Command {
     .option('--format <format>', 'Output format (json/table)', 'json')
     .action(async (options) => {
       try {
-        const client = createClient();
+        const client = await createClientAsync();
         const result = await client.refreshWebhook(options.base, options.webhook);
         printOutput(result, options.format as OutputFormat);
       } catch (error) {
@@ -109,7 +109,7 @@ export function createWebhooksCommand(): Command {
     .option('--format <format>', 'Output format (json/table)', 'json')
     .action(async (options) => {
       try {
-        const client = createClient();
+        const client = await createClientAsync();
         const cursor = options.cursor ? parseInt(options.cursor) : undefined;
         const result = await client.getWebhookPayloads(
           options.base,

@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { createClient } from '../lib/client.js';
+import { createClientAsync } from '../lib/client.js';
 import { printOutput, printError, type OutputFormat } from '../lib/output.js';
 
 export function createTablesCommand(): Command {
@@ -16,7 +16,7 @@ export function createTablesCommand(): Command {
     .option('--format <format>', 'Output format (json/table)', 'json')
     .action(async (options) => {
       try {
-        const client = createClient();
+        const client = await createClientAsync();
         const fields = JSON.parse(options.fields);
         const table = await client.createTable(options.base, {
           name: options.name,
@@ -41,7 +41,7 @@ export function createTablesCommand(): Command {
     .option('--format <format>', 'Output format (json/table)', 'json')
     .action(async (options) => {
       try {
-        const client = createClient();
+        const client = await createClientAsync();
         const params: { name?: string; description?: string } = {};
         if (options.name) params.name = options.name;
         if (options.description) params.description = options.description;
