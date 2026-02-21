@@ -2,7 +2,7 @@
 name: airtable
 description: "Manage Airtable bases, tables, records, comments, and webhooks via the Airtable Web API. Use when the user wants to list, create, update, or delete records, manage table schemas, or interact with Airtable data."
 homepage: https://airtable.com/developers/web/api/introduction
-repository: https://github.com/anthonyencodeclub/airtable-cli
+repository: https://github.com/robertjurvanen-max/airtable-cli
 user-invocable: true
 metadata: {"moltbot":{"emoji":"📊","requires":{"bins":["node"],"env":["AIRTABLE_CLIENT_ID"]},"primaryEnv":"AIRTABLE_CLIENT_ID"},"clawdbot":{"emoji":"📊","requires":{"bins":["node"],"env":["AIRTABLE_CLIENT_ID"]},"primaryEnv":"AIRTABLE_CLIENT_ID"}}
 ---
