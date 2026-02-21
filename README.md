@@ -1,291 +1,194 @@
 # Airtable CLI
 
-A command-line interface for interacting with Airtable bases, tables, records, and webhooks.
+A fast, fully-featured command-line interface for the [Airtable API](https://airtable.com/developers/web/api/introduction). Manage bases, tables, records, fields, webhooks, and comments — all from your terminal.
+
+[![Tests](https://img.shields.io/badge/tests-113%20passing-brightgreen)](#testing)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+---
+
+## Features
+
+- 📋 **Records** — list, get, create, update, replace, delete (single + bulk)
+- 🗄️ **Bases** — list all bases, inspect schema
+- 📊 **Tables** — create and update tables
+- 🔧 **Fields** — create and update fields
+- 💬 **Comments** — list, create, update, delete record comments
+- 🔔 **Webhooks** — create, list, refresh, delete; fetch payloads
+- 🔐 **OAuth auth** — browser-based login with automatic token refresh
+- 🔑 **PAT support** — use a Personal Access Token instead of OAuth
+
+---
 
 ## Installation
 
 ```bash
+git clone https://github.com/robertjurvanen-max/airtable-cli.git
+cd airtable-cli
 npm install
 npm run build
-npm link  # Makes 'airtable' command available globally
+npm link          # makes `airtable` available globally
 ```
 
-## Authentication (OAuth)
+---
 
-This CLI uses OAuth for secure authentication. Users authorize via Airtable's website and tokens are stored locally with automatic refresh.
+## Authentication
 
-### Step 1: Create an OAuth Integration
+### Option A: Personal Access Token (quickest)
 
-1. Go to [https://airtable.com/create/oauth](https://airtable.com/create/oauth)
-2. Click "Register new OAuth integration"
-3. Configure:
-   - **Name**: Your app name (e.g., "My Airtable CLI")
-   - **Redirect URL**: `http://localhost:4000/callback`
-
-### Step 2: Select Scopes
-
-| Scope | Description |
-|-------|-------------|
-| `data.records:read` | Read records from tables |
-| `data.records:write` | Create, update, delete records |
-| `schema.bases:read` | View base and table structure |
-| `schema.bases:write` | Create tables and fields |
-| `webhook:manage` | Create and manage webhooks |
-
-### Step 3: Get Credentials
-
-After registering, you'll receive:
-- **Client ID** (required)
-- **Client Secret** (click "Generate" - recommended)
-
-### Step 4: Configure
-
-**Option A: Environment Variables**
 ```bash
-export AIRTABLE_CLIENT_ID="your_client_id"
-export AIRTABLE_CLIENT_SECRET="your_client_secret"
+export AIRTABLE_PAT="patXXXXXXXXXXXXXX"
+airtable records list <baseId> <tableId>
 ```
 
-**Option B: Moltbot Config** (`~/.moltbot/moltbot.json` or `~/.clawdbot/clawdbot.json`)
-```json
-{
-  "skills": {
-    "entries": {
-      "airtable": {
-        "enabled": true,
-        "env": {
-          "AIRTABLE_CLIENT_ID": "your_client_id",
-          "AIRTABLE_CLIENT_SECRET": "your_client_secret"
-        }
-      }
-    }
-  }
-}
-```
+Get a PAT at [airtable.com/create/tokens](https://airtable.com/create/tokens). Required scopes depend on the commands you use.
 
-### Step 5: Login
+### Option B: OAuth (recommended for teams)
 
-**If the CLI runs on your local machine:**
-```bash
-airtable auth login
-```
-Browser opens → click "Grant access" → done!
-
-**If the CLI runs remotely (server, moltbot, etc):**
-```bash
-airtable auth login --manual
-```
-
-1. Copy the URL shown and open it in **your browser** (phone, laptop, anywhere)
-2. Sign in to Airtable and click "Grant access"
-3. You'll see an error page - **that's normal!** Look at the URL bar:
+1. Register an OAuth integration at [airtable.com/create/oauth](https://airtable.com/create/oauth)
+   - Redirect URL: `http://localhost:4000/callback`
+2. Set credentials:
+   ```bash
+   export AIRTABLE_CLIENT_ID="your_client_id"
+   export AIRTABLE_CLIENT_SECRET="your_client_secret"
    ```
-   http://localhost:4000/callback?code=abc123xyz&state=...
-                                       ───────────
-                                       ↑ COPY THIS
+3. Log in:
+   ```bash
+   airtable auth login          # opens browser automatically
+   airtable auth login --manual # for remote/headless environments
    ```
-4. Paste that code into the CLI
 
-> **Why the error page?** The redirect goes to `localhost:4000` (your machine) but the CLI is on the server. You just need the code from the URL, not the page itself.
+Tokens are stored locally at `~/.airtable/tokens.json` and refreshed automatically.
 
-Tokens are stored at `~/.moltbot/credentials/airtable.json` (or `~/.clawdbot/credentials/` for backwards compatibility).
+---
 
-## Commands
-
-### Authentication
-
-```bash
-airtable auth login      # Login via OAuth (opens browser)
-airtable auth logout     # Delete stored credentials
-airtable auth status     # Check authentication status
-airtable auth whoami     # Get current user info
-airtable auth check      # Quick connection test
-airtable auth setup      # Show setup instructions
-```
-
-### Bases
-
-```bash
-airtable bases list                    # List all bases
-airtable bases list --all              # List all bases (paginated)
-airtable bases schema -b <baseId>      # Get base schema
-```
+## Usage
 
 ### Records
 
 ```bash
 # List records
-airtable records list -b <baseId> -t <table> [options]
-  --view <name>           # Use a specific view
-  --filter <formula>      # Filter by formula
-  --sort <field>          # Sort by field
-  --direction asc|desc    # Sort direction
-  --fields <f1,f2>        # Select specific fields
-  --all                   # Fetch all (auto-paginate)
-  --format json|table|csv # Output format
+airtable records list <baseId> <tableId>
+airtable records list <baseId> <tableId> --view "Grid view" --max-records 50
+airtable records list <baseId> <tableId> --filter '{Status}="Active"'
 
-# Get single record
-airtable records get -b <baseId> -t <table> -r <recordId>
+# Get a single record
+airtable records get <baseId> <tableId> <recordId>
 
-# Create record
-airtable records create -b <baseId> -t <table> \
-  --fields '{"Name": "John", "Email": "john@example.com"}'
+# Create records
+airtable records create <baseId> <tableId> '{"Name":"Alice","Status":"Active"}'
+airtable records create <baseId> <tableId> --file records.json    # bulk from file
 
-# Create multiple records (up to 10)
-airtable records create-batch -b <baseId> -t <table> \
-  --records '[{"fields": {"Name": "John"}}, {"fields": {"Name": "Jane"}}]'
+# Update records (PATCH — partial update)
+airtable records update <baseId> <tableId> <recordId> '{"Status":"Done"}'
 
-# Update record
-airtable records update -b <baseId> -t <table> -r <recordId> \
-  --fields '{"Status": "Active"}'
+# Replace records (PUT — full replace)
+airtable records replace <baseId> <tableId> <recordId> '{"Name":"Alice","Status":"Active"}'
 
-# Update multiple records
-airtable records update-batch -b <baseId> -t <table> \
-  --records '[{"id": "rec123", "fields": {"Status": "Active"}}]'
+# Delete records
+airtable records delete <baseId> <tableId> <recordId>
+airtable records delete <baseId> <tableId> recA recB recC    # bulk delete
+```
 
-# Replace record (full replacement)
-airtable records replace -b <baseId> -t <table> -r <recordId> \
-  --fields '{"Name": "New Name", "Status": "Active"}'
+### Bases
 
-# Upsert records
-airtable records upsert -b <baseId> -t <table> \
-  --records '[{"fields": {"Email": "john@example.com", "Name": "John"}}]' \
-  --merge-on Email
-
-# Delete record
-airtable records delete -b <baseId> -t <table> -r <recordId>
-
-# Delete multiple records
-airtable records delete-batch -b <baseId> -t <table> \
-  --records rec123,rec456,rec789
+```bash
+airtable bases list                   # list all accessible bases
+airtable bases schema <baseId>        # show tables, fields, and views
 ```
 
 ### Tables
 
 ```bash
-# Create table
-airtable tables create -b <baseId> -n "Table Name" \
-  --fields '[{"name": "Name", "type": "singleLineText"}]'
-
-# Update table
-airtable tables update -b <baseId> -t <tableId> -n "New Name"
+airtable tables create <baseId> --name "New Table" --fields fields.json
+airtable tables update <baseId> <tableId> --name "Renamed Table"
 ```
 
 ### Fields
 
 ```bash
-# Create field
-airtable fields create -b <baseId> -t <tableId> -n "Field Name" --type singleLineText
-
-# Update field
-airtable fields update -b <baseId> -t <tableId> -f <fieldId> -n "New Name"
-
-# List field types
-airtable fields types
+airtable fields create <baseId> <tableId> --name "Score" --type number
+airtable fields update <baseId> <tableId> <fieldId> --name "Total Score"
 ```
 
 ### Comments
 
 ```bash
-# List comments
-airtable comments list -b <baseId> -t <table> -r <recordId>
-
-# Create comment
-airtable comments create -b <baseId> -t <table> -r <recordId> -m "Comment text"
+airtable comments list <baseId> <tableId> <recordId>
+airtable comments create <baseId> <tableId> <recordId> "Great work!"
+airtable comments update <baseId> <tableId> <recordId> <commentId> "Updated text"
+airtable comments delete <baseId> <tableId> <recordId> <commentId>
 ```
 
 ### Webhooks
 
 ```bash
-# List webhooks
-airtable webhooks list -b <baseId>
-
-# Create webhook
-airtable webhooks create -b <baseId> -u https://your-server.com/webhook \
-  --spec '{"options": {"filters": {"dataTypes": ["tableData"]}}}'
-
-# Toggle webhook
-airtable webhooks toggle -b <baseId> -w <webhookId> --enable true
-
-# Delete webhook
-airtable webhooks delete -b <baseId> -w <webhookId>
-
-# Refresh expiration
-airtable webhooks refresh -b <baseId> -w <webhookId>
-
-# Get payloads
-airtable webhooks payloads -b <baseId> -w <webhookId>
+airtable webhooks list <baseId>
+airtable webhooks create <baseId> --url https://example.com/hook
+airtable webhooks refresh <baseId> <webhookId>
+airtable webhooks delete <baseId> <webhookId>
+airtable webhooks payloads <baseId> <webhookId>
 ```
+
+### Auth
+
+```bash
+airtable auth login            # OAuth login (opens browser)
+airtable auth login --manual   # OAuth login (manual URL copy)
+airtable auth logout           # clear stored tokens
+airtable auth status           # check current auth state
+airtable auth whoami           # show current user info
+```
+
+---
 
 ## Output Formats
 
-All commands support `--format`:
-- `json` (default) - Full JSON output
-- `table` - ASCII table format
-- `csv` - CSV format (for records)
+All commands support `--output` / `-o`:
 
-## Examples
-
-### List bases and explore schema
 ```bash
-airtable bases list --format table
-airtable bases schema -b appXXXXXX --format json
+airtable records list <baseId> <tableId> --output json    # raw JSON
+airtable records list <baseId> <tableId> --output table   # formatted table (default)
+airtable records list <baseId> <tableId> --output csv     # CSV
 ```
 
-### Query records with filtering
+---
+
+## Environment Variables
+
+| Variable | Description |
+|---|---|
+| `AIRTABLE_PAT` | Personal Access Token |
+| `AIRTABLE_CLIENT_ID` | OAuth client ID |
+| `AIRTABLE_CLIENT_SECRET` | OAuth client secret |
+
+---
+
+## Testing
+
 ```bash
-airtable records list -b appXXXXXX -t "Contacts" \
-  --filter "{Status}='Active'" \
-  --sort "Created" --direction desc \
-  --format table
+npm test               # run all tests (113 tests across 4 suites)
+npm run test:watch     # watch mode
+npm run test:coverage  # with coverage report
 ```
 
-### Export to CSV
-```bash
-airtable records list -b appXXXXXX -t "Products" --all --format csv > products.csv
-```
+Test suites:
+- `client.test.ts` — API client (41 tests)
+- `oauth.test.ts` — auth flow (31 tests)
+- `commands.test.ts` — CLI commands (18 tests)
+- `output.test.ts` — output formatting (23 tests)
 
-### Bulk update
-```bash
-airtable records update-batch -b appXXXXXX -t "Tasks" \
-  --records '[
-    {"id": "recA", "fields": {"Status": "Complete"}},
-    {"id": "recB", "fields": {"Status": "Complete"}}
-  ]'
-```
-
-## Token Storage
-
-- **OAuth tokens**: `~/.moltbot/credentials/airtable.json` (mode 0600)
-- **Backwards compatibility**: Also checks `~/.clawdbot/credentials/airtable.json`
-- Tokens auto-refresh when expired (if refresh token available)
-- Run `airtable auth login` if refresh fails
-
-## Rate Limits
-
-Airtable API: 5 requests/second/base. The CLI does not implement rate limiting - be mindful with batch operations.
+---
 
 ## Development
 
 ```bash
-npm install          # Install dependencies
-npm run build        # Compile TypeScript
-npm test             # Run tests (114 tests)
-npm run lint         # Run linter
+npm run dev    # run with tsx (no build step)
+npm run build  # compile TypeScript → dist/
+npm run lint   # lint source files
 ```
 
-## Moltbot Integration
-
-1. Symlink the skill:
-```bash
-ln -s /path/to/airtable-cli ~/.moltbot/skills/airtable
-# Or for legacy clawdbot installations:
-# ln -s /path/to/airtable-cli ~/.clawdbot/skills/airtable
-```
-
-2. Configure in your moltbot config (see Option B above)
-
-3. The skill reads `SKILL.md` for command descriptions and injects environment variables automatically.
+---
 
 ## License
 
