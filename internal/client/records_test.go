@@ -250,6 +250,40 @@ func TestCreateRecordsAutoChunking(t *testing.T) {
 	}
 }
 
+func TestCreateRecordsBatchPayloadStructure(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+
+		// Verify top-level typecast is set.
+		var raw map[string]json.RawMessage
+		json.Unmarshal(body, &raw)
+		var topTypecast bool
+		json.Unmarshal(raw["typecast"], &topTypecast)
+		if !topTypecast {
+			t.Error("top-level typecast should be true")
+		}
+
+		// Verify per-record entries have NO typecast field.
+		var records []map[string]json.RawMessage
+		json.Unmarshal(raw["records"], &records)
+		for i, rec := range records {
+			if _, has := rec["typecast"]; has {
+				t.Errorf("record[%d] should not have per-record typecast", i)
+			}
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(createRecordsResponse{Records: []Record{{ID: "rec1", Fields: map[string]any{}}}})
+	}))
+	defer srv.Close()
+
+	c := NewWithBaseURL("pat", srv.URL)
+	_, err := c.CreateRecords("app1", "Tasks", []map[string]any{{"Name": "Test"}}, true)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestUpdateRecord(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPatch {

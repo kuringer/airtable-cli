@@ -74,7 +74,7 @@ func ExitCodeForError(err error) int {
 			return exitcode.Auth
 		case 404:
 			return exitcode.NotFound
-		case 422:
+		case 400, 422:
 			return exitcode.Validation
 		}
 		return exitcode.General
@@ -159,7 +159,18 @@ func Request[T any](c *Client, method, endpoint string, body any) (T, error) {
 		// Non-2xx - parse Airtable error envelope.
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 			var errBody airtableErrorBody
-			_ = json.Unmarshal(respBody, &errBody)
+			if json.Unmarshal(respBody, &errBody) != nil || errBody.Error.Message == "" {
+				// Non-JSON or empty error - use raw body as message.
+				msg := strings.TrimSpace(string(respBody))
+				if msg == "" {
+					msg = fmt.Sprintf("HTTP %d %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+				}
+				return zero, &APIError{
+					StatusCode: resp.StatusCode,
+					Type:       "UNKNOWN_ERROR",
+					Message:    msg,
+				}
+			}
 			return zero, &APIError{
 				StatusCode: resp.StatusCode,
 				Type:       errBody.Error.Type,

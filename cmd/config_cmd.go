@@ -39,7 +39,19 @@ func (c *ConfigShowCmd) Run(globals *Globals) error {
 		return nil
 	}
 
-	out.Success(cfg)
+	// Mask PAT before outputting to avoid leaking secrets in agent transcripts.
+	display := struct {
+		Auth     map[string]string `json:"auth"`
+		Defaults config.DefaultsConfig `json:"defaults"`
+		Aliases  map[string]string `json:"aliases"`
+	}{
+		Auth: map[string]string{
+			"pat": maskPat(cfg.Auth.Pat),
+		},
+		Defaults: cfg.Defaults,
+		Aliases:  cfg.Aliases,
+	}
+	out.Success(display)
 	return nil
 }
 
@@ -110,10 +122,14 @@ func (c *ConfigSetCmd) Run(globals *Globals) error {
 		return nil
 	}
 
+	displayValue := c.Value
+	if c.Key == "pat" {
+		displayValue = maskPat(c.Value)
+	}
 	out.Success(map[string]string{
 		"message": fmt.Sprintf("set %s", c.Key),
 		"key":     c.Key,
-		"value":   c.Value,
+		"value":   displayValue,
 	})
 	return nil
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 )
 
 // Base represents an Airtable base.
@@ -64,7 +65,7 @@ func (c *Client) ListBases() ([]Base, error) {
 		if resp.Offset == "" {
 			break
 		}
-		endpoint = fmt.Sprintf("meta/bases?offset=%s", resp.Offset)
+		endpoint = fmt.Sprintf("meta/bases?offset=%s", url.QueryEscape(resp.Offset))
 	}
 
 	return all, nil

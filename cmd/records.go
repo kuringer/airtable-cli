@@ -280,6 +280,11 @@ func (c *RecordsDeleteCmd) Run(globals *Globals) error {
 		return nil
 	}
 
+	if len(c.RecordIds) == 0 {
+		out.Error("VALIDATION_ERROR", "at least one record ID is required")
+		return nil
+	}
+
 	cl := client.New(pat)
 
 	if len(c.RecordIds) == 1 {
@@ -305,7 +310,10 @@ func readFieldsInput(flagValue string) (string, error) {
 		return flagValue, nil
 	}
 
-	stat, _ := os.Stdin.Stat()
+	stat, err := os.Stdin.Stat()
+	if err != nil {
+		return "", fmt.Errorf("no fields provided; use --fields or pipe JSON via stdin")
+	}
 	isPipe := (stat.Mode() & os.ModeCharDevice) == 0
 	if !isPipe {
 		return "", fmt.Errorf("no fields provided; use --fields or pipe JSON via stdin")

@@ -36,9 +36,13 @@ type createRecordRequest struct {
 	Typecast bool           `json:"typecast,omitempty"`
 }
 
+type batchRecordEntry struct {
+	Fields map[string]any `json:"fields"`
+}
+
 type createRecordsRequest struct {
-	Records  []createRecordRequest `json:"records"`
-	Typecast bool                  `json:"typecast,omitempty"`
+	Records  []batchRecordEntry `json:"records"`
+	Typecast bool               `json:"typecast,omitempty"`
 }
 
 type createRecordsResponse struct {
@@ -166,12 +170,12 @@ func (c *Client) CreateRecords(baseID, table string, records []map[string]any, t
 		}
 		chunk := records[i:end]
 
-		var reqs []createRecordRequest
+		var entries []batchRecordEntry
 		for _, fields := range chunk {
-			reqs = append(reqs, createRecordRequest{Fields: fields, Typecast: typecast})
+			entries = append(entries, batchRecordEntry{Fields: fields})
 		}
 
-		body := createRecordsRequest{Records: reqs, Typecast: typecast}
+		body := createRecordsRequest{Records: entries, Typecast: typecast}
 		resp, err := Request[createRecordsResponse](c, http.MethodPost, endpoint, body)
 		if err != nil {
 			return all, fmt.Errorf("create chunk %d-%d: %w", i, end-1, err)

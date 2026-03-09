@@ -200,6 +200,55 @@ func TestRateLimitExhausted(t *testing.T) {
 	}
 }
 
+func TestError400(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(400)
+		fmt.Fprint(w, `{"error":{"type":"INVALID_REQUEST","message":"bad formula"}}`)
+	}))
+	defer srv.Close()
+
+	c := NewWithBaseURL("pat", srv.URL)
+	_, err := Request[testResponse](c, http.MethodGet, "test", nil)
+	assertAPIError(t, err, 400, "INVALID_REQUEST")
+
+	if got := ExitCodeForError(err); got != exitcode.Validation {
+		t.Errorf("ExitCodeForError(400) = %d, want %d", got, exitcode.Validation)
+	}
+}
+
+func TestNonJSONErrorBody(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(502)
+		fmt.Fprint(w, "Bad Gateway")
+	}))
+	defer srv.Close()
+
+	c := NewWithBaseURL("pat", srv.URL)
+	_, err := Request[testResponse](c, http.MethodGet, "test", nil)
+	assertAPIError(t, err, 502, "UNKNOWN_ERROR")
+
+	var apiErr *APIError
+	if isAPIError(err, &apiErr) && apiErr.Message != "Bad Gateway" {
+		t.Errorf("message = %q, want %q", apiErr.Message, "Bad Gateway")
+	}
+}
+
+func TestEmptyErrorBody(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(503)
+	}))
+	defer srv.Close()
+
+	c := NewWithBaseURL("pat", srv.URL)
+	_, err := Request[testResponse](c, http.MethodGet, "test", nil)
+	assertAPIError(t, err, 503, "UNKNOWN_ERROR")
+
+	var apiErr *APIError
+	if isAPIError(err, &apiErr) && apiErr.Message != "HTTP 503 Service Unavailable" {
+		t.Errorf("message = %q, want fallback", apiErr.Message)
+	}
+}
+
 func TestExitCodeForError(t *testing.T) {
 	tests := []struct {
 		name string
@@ -208,6 +257,7 @@ func TestExitCodeForError(t *testing.T) {
 	}{
 		{"401", &APIError{StatusCode: 401}, exitcode.Auth},
 		{"403", &APIError{StatusCode: 403}, exitcode.Auth},
+		{"400", &APIError{StatusCode: 400}, exitcode.Validation},
 		{"404", &APIError{StatusCode: 404}, exitcode.NotFound},
 		{"422", &APIError{StatusCode: 422}, exitcode.Validation},
 		{"500", &APIError{StatusCode: 500}, exitcode.General},
