@@ -1,290 +1,158 @@
 ---
-name: airtable
-description: "Manage Airtable bases, tables, records, comments, and webhooks via the Airtable Web API. Use when the user wants to list, create, update, or delete records, manage table schemas, or interact with Airtable data."
-homepage: https://airtable.com/developers/web/api/introduction
-repository: https://github.com/robertjurvanen-max/airtable-cli
-user-invocable: true
-metadata: {"moltbot":{"emoji":"📊","requires":{"bins":["node"],"env":["AIRTABLE_CLIENT_ID"]},"primaryEnv":"AIRTABLE_CLIENT_ID"},"clawdbot":{"emoji":"📊","requires":{"bins":["node"],"env":["AIRTABLE_CLIENT_ID"]},"primaryEnv":"AIRTABLE_CLIENT_ID"}}
+name: airtable-cli
+description: "Manage Airtable bases, tables, and records via CLI. Use when the user wants to read/write Airtable data, inspect table schemas, or automate Airtable workflows."
 ---
 
-# Airtable CLI Skill
+# Airtable CLI
 
-Interact with Airtable bases, tables, and records using the official Airtable Web API.
+Agent-first Go CLI for Airtable API. JSON output by default.
 
-## Authentication (OAuth)
+## Auth Setup
 
-This CLI uses OAuth for secure authentication. Users authorize via Airtable's website and tokens are stored locally with automatic refresh.
+```bash
+# Option 1: env var (preferred for agents)
+export AIRTABLE_PAT="patXXXXXX"
 
-**Step 1: Register an OAuth Integration**
-1. Go to https://airtable.com/create/oauth
-2. Create a new integration with:
-   - Name: Your app name
-   - Redirect URL: `http://localhost:4000/callback`
-3. Select scopes:
-   - `data.records:read` - Read records
-   - `data.records:write` - Create/update/delete records
-   - `schema.bases:read` - Read base/table schemas
-   - `schema.bases:write` - Create tables/fields
-   - `webhook:manage` - Manage webhooks
-4. Save your Client ID and generate a Client Secret
+# Option 2: config file
+airtable config set pat patXXXXXX
 
-**Step 2: Configure in moltbot**
+# Option 3: interactive
+airtable config init
+```
 
-Add to your moltbot config (`~/.moltbot/moltbot.json` or `~/.clawdbot/clawdbot.json`):
+Get a PAT at https://airtable.com/create/tokens. Required scopes:
+- `data.records:read` / `data.records:write` - records CRUD
+- `schema.bases:read` - bases list + schema
+
+## Config
+
+File: `~/.config/airtable/config.toml`
+
+```bash
+airtable config set pat patXXXXXX       # store PAT
+airtable config set base appXXXXXX      # set default base
+airtable config set alias.crm appABC    # create alias
+airtable config show                    # print config
+```
+
+## Agent Workflow
+
+### Step 1: Discover bases
+```bash
+airtable bases list
+```
+
+### Step 2: Inspect schema (tables, fields, views)
+```bash
+airtable schema                          # uses default base
+airtable schema appXXXXXX               # specific base
+airtable schema -b crm                  # via alias
+```
+
+### Step 3: Read records
+```bash
+airtable records list Tasks
+airtable records list Tasks --all                              # auto-paginate
+airtable records list Tasks --filter '{Status}="Active"'
+airtable records list Tasks --view "Active Items"
+airtable records list Tasks --sort Name --direction asc
+airtable records list Tasks --fields "Name,Status,Email"
+airtable records list Tasks --limit 10
+airtable records list Tasks --with-field-ids
+
+airtable records get Tasks recXXXXXX
+```
+
+### Step 4: Write records
+```bash
+# Create single
+airtable records create Tasks --fields '{"Name":"Alice","Status":"Active"}'
+
+# Create with typecast (auto-convert strings to correct types)
+airtable records create Tasks --fields '{"Name":"Alice","Date":"2024-01-15"}' --typecast
+
+# Create via stdin (single or bulk)
+echo '{"Name":"Alice"}' | airtable records create Tasks
+echo '[{"Name":"Alice"},{"Name":"Bob"}]' | airtable records create Tasks
+
+# Update
+airtable records update Tasks recXXXXXX --fields '{"Status":"Done"}'
+
+# Delete single or bulk
+airtable records delete Tasks recXXXXXX
+airtable records delete Tasks recAAA recBBB recCCC
+```
+
+## Base Resolution
+
+All commands accept `-b` for base. Resolution order:
+1. `-b` flag value (alias resolved via config)
+2. Config `defaults.base`
+
+```bash
+airtable records list -b crm Contacts     # alias
+airtable records list -b appXXX Contacts   # direct ID
+airtable records list Contacts             # uses config default
+```
+
+## Common Filter Patterns
+
+```
+{Status}="Active"
+AND({Status}="Active",{Priority}="High")
+OR({Type}="Bug",{Type}="Feature")
+FIND("keyword",{Name})
+{Count}>0
+IS_AFTER({Created},"2024-01-01")
+BLANK({Email})
+NOT(BLANK({Email}))
+```
+
+## Output
+
+JSON by default (agent-first). Add `-H` for human-readable.
+
+Success:
 ```json
-{
-  "skills": {
-    "entries": {
-      "airtable": {
-        "enabled": true,
-        "env": {
-          "AIRTABLE_CLIENT_ID": "your_client_id_here",
-          "AIRTABLE_CLIENT_SECRET": "your_client_secret_here"
-        }
-      }
-    }
-  }
-}
+{"success":true,"data":[...],"error":null}
 ```
 
-**Step 3: Login**
-
-**If the CLI runs on your local machine:**
-```bash
-airtable auth login
-```
-Browser opens → click "Grant access" → done!
-
----
-
-**If the CLI runs remotely (like moltbot on a server):**
-
-```bash
-airtable auth login --manual
+Error:
+```json
+{"success":false,"data":null,"error":{"code":"NOT_FOUND","message":"Table not found"}}
 ```
 
-This shows you a URL. Here's what to do:
+## Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| 0 | Success |
+| 1 | General error |
+| 2 | Auth error (no PAT, invalid PAT) |
+| 3 | Not found (base, table, record) |
+| 4 | Validation error (bad filter, bad JSON) |
+| 5 | Rate limited (after retries exhausted) |
+
+## Batch Operations
+
+- `records list --all` auto-paginates (follows offset)
+- `records create` with array input auto-chunks by 10
+- `records delete` with multiple IDs auto-chunks by 10
+- Rate limit 429 retried automatically (up to 3 retries with backoff)
+
+## All Commands
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│  STEP 1: Copy the URL shown and open it in YOUR browser          │
-│          (on your phone, laptop, anywhere)                       │
-│                                                                  │
-│  STEP 2: Sign in to Airtable and click "Grant access"            │
-│                                                                  │
-│  STEP 3: You'll see an error page - THAT'S NORMAL!               │
-│          Look at the URL bar. It looks like:                     │
-│                                                                  │
-│          http://localhost:4000/callback?code=abc123xyz&state=... │
-│                                            ─────────────         │
-│                                            ↑ COPY THIS PART      │
-│                                                                  │
-│  STEP 4: Paste that code into the CLI when it asks               │
-└──────────────────────────────────────────────────────────────────┘
-```
+airtable bases list                                # list all bases
+airtable schema [base]                             # tables, fields, views
 
-**Why does the page show an error?**
-The redirect goes to `localhost:4000` which is your local machine - but the CLI is running on the server. That's fine! You just need the `code` from the URL, not the page itself.
+airtable records list <table> [flags]              # list records
+airtable records get <table> <recordId>            # get one record
+airtable records create <table> [--fields JSON]    # create (or stdin)
+airtable records update <table> <id> [--fields J]  # update (or stdin)
+airtable records delete <table> <id> [ids...]      # delete single/bulk
 
-Once authenticated, you can use moltbot to interact with Airtable.
-
-## Available Commands
-
-### Authentication
-```bash
-# Login with OAuth (opens browser)
-airtable auth login
-
-# Check authentication status
-airtable auth status
-
-# Logout and delete stored credentials
-airtable auth logout
-
-# Get current user info and scopes
-airtable auth whoami
-
-# Verify connection is valid
-airtable auth check
-```
-
-### Bases
-```bash
-# List all accessible bases
-airtable bases list [--all] [--format json|table|csv]
-
-# Get base schema (tables, fields, views)
-airtable bases schema -b <baseId>
-```
-
-### Records
-```bash
-# List records from a table
-airtable records list -b <baseId> -t <tableIdOrName> \
-  [--view <viewName>] \
-  [--filter <formula>] \
-  [--sort <field>] \
-  [--direction asc|desc] \
-  [--fields <field1,field2>] \
-  [--all] \
-  [--format json|table|csv]
-
-# Get a single record
-airtable records get -b <baseId> -t <tableIdOrName> -r <recordId>
-
-# Create a record
-airtable records create -b <baseId> -t <tableIdOrName> \
-  --fields '{"Name": "John", "Email": "john@example.com"}' \
-  [--typecast]
-
-# Create multiple records (up to 10)
-airtable records create-batch -b <baseId> -t <tableIdOrName> \
-  --records '[{"fields": {"Name": "John"}}, {"fields": {"Name": "Jane"}}]'
-
-# Update a record (partial update)
-airtable records update -b <baseId> -t <tableIdOrName> -r <recordId> \
-  --fields '{"Status": "Active"}'
-
-# Update multiple records
-airtable records update-batch -b <baseId> -t <tableIdOrName> \
-  --records '[{"id": "rec123", "fields": {"Status": "Active"}}]'
-
-# Replace a record (full replacement)
-airtable records replace -b <baseId> -t <tableIdOrName> -r <recordId> \
-  --fields '{"Name": "Updated Name", "Status": "Active"}'
-
-# Upsert records (create or update based on merge fields)
-airtable records upsert -b <baseId> -t <tableIdOrName> \
-  --records '[{"fields": {"Email": "john@example.com", "Name": "John Updated"}}]' \
-  --merge-on Email
-
-# Delete a record
-airtable records delete -b <baseId> -t <tableIdOrName> -r <recordId>
-
-# Delete multiple records
-airtable records delete-batch -b <baseId> -t <tableIdOrName> \
-  --records rec123,rec456,rec789
-```
-
-### Tables
-```bash
-# Create a new table
-airtable tables create -b <baseId> -n "Table Name" \
-  --fields '[{"name": "Name", "type": "singleLineText"}, {"name": "Status", "type": "singleSelect"}]'
-
-# Update table name/description
-airtable tables update -b <baseId> -t <tableId> -n "New Name"
-```
-
-### Fields
-```bash
-# Create a new field
-airtable fields create -b <baseId> -t <tableId> -n "Field Name" --type singleLineText
-
-# Update field name/description
-airtable fields update -b <baseId> -t <tableId> -f <fieldId> -n "New Field Name"
-
-# List available field types
-airtable fields types
-```
-
-### Comments
-```bash
-# List comments on a record
-airtable comments list -b <baseId> -t <tableIdOrName> -r <recordId>
-
-# Add a comment to a record
-airtable comments create -b <baseId> -t <tableIdOrName> -r <recordId> \
-  -m "This is a comment"
-```
-
-### Webhooks
-```bash
-# List webhooks for a base
-airtable webhooks list -b <baseId>
-
-# Create a webhook
-airtable webhooks create -b <baseId> -u https://your-server.com/webhook \
-  --spec '{"options": {"filters": {"dataTypes": ["tableData"]}}}'
-
-# Enable/disable a webhook
-airtable webhooks toggle -b <baseId> -w <webhookId> --enable true
-
-# Delete a webhook
-airtable webhooks delete -b <baseId> -w <webhookId>
-
-# Refresh webhook expiration
-airtable webhooks refresh -b <baseId> -w <webhookId>
-
-# Get webhook payloads
-airtable webhooks payloads -b <baseId> -w <webhookId> [--cursor <n>]
-```
-
-## Field Types
-
-Available field types for table/field creation:
-- `singleLineText` - Single line of text
-- `multilineText` - Multiple lines of text
-- `email` - Email address
-- `url` - URL
-- `phoneNumber` - Phone number
-- `number` - Number (integer or decimal)
-- `currency` - Currency amount
-- `percent` - Percentage
-- `checkbox` - Boolean checkbox
-- `singleSelect` - Single select dropdown
-- `multipleSelects` - Multiple select tags
-- `date` - Date only
-- `dateTime` - Date and time
-- `duration` - Duration value
-- `rating` - Rating (1-10 stars)
-- `richText` - Rich text with formatting
-- `multipleAttachments` - File attachments
-- `multipleRecordLinks` - Links to records in another table
-
-## Output Formats
-
-All commands support `--format` option:
-- `json` (default) - Full JSON output
-- `table` - ASCII table format
-- `csv` - CSV format (for records)
-
-## Credential Storage
-
-- **OAuth tokens**: `~/.moltbot/credentials/airtable.json` or `~/.clawdbot/credentials/airtable.json` (mode 0600)
-- **Token refresh**: Automatic when using OAuth with refresh tokens
-
-## Rate Limits
-
-Airtable API has a rate limit of 5 requests per second per base. The CLI does not implement rate limiting - consider this when making batch operations.
-
-## Examples
-
-### Login and list bases
-```bash
-airtable auth login
-airtable bases list --format table
-```
-
-### List all records with filtering
-```bash
-airtable records list -b appXXXXXXX -t "Contacts" \
-  --filter "{Status}='Active'" \
-  --sort "Created" --direction desc \
-  --format table
-```
-
-### Export table to CSV
-```bash
-airtable records list -b appXXXXXXX -t "Products" --all --format csv > products.csv
-```
-
-### Bulk update records
-```bash
-airtable records update-batch -b appXXXXXXX -t "Tasks" \
-  --records '[
-    {"id": "recA", "fields": {"Status": "Complete"}},
-    {"id": "recB", "fields": {"Status": "Complete"}},
-    {"id": "recC", "fields": {"Status": "Complete"}}
-  ]'
+airtable config init                               # interactive setup
+airtable config show                               # print config
+airtable config set <key> <value>                  # set config value
 ```
