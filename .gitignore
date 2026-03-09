@@ -1,6 +1,23 @@
-node_modules/
-dist/
+# Binary
+airtable
+airtable-linux
+
+# Go
+vendor/
+
+# Config
 .env
-*.env
-coverage/
+
+# Build
+dist/
+
+# IDE
+.idea/
+.vscode/
+
+# OS
 .DS_Store
+
+# Agent artifacts
+worker.md
+reviewer.md
