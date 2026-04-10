@@ -48,10 +48,10 @@ func New(w io.Writer, human bool) *Output {
 // Success outputs a successful response with the given data.
 func (o *Output) Success(data any) {
 	if o.human {
-		o.prettyJSON(data)
+		o.encode(data)
 		return
 	}
-	o.printJSON(Response{Success: true, Data: data, Error: nil})
+	o.encode(Response{Success: true, Data: data, Error: nil})
 }
 
 // Error outputs an error response with the given code and message.
@@ -74,25 +74,17 @@ func (o *Output) Error(code, message string) {
 		fmt.Fprintf(o.w, "Error: %s\n", message)
 		return
 	}
-	o.printJSON(Response{
+	o.encode(Response{
 		Success: false,
 		Data:    nil,
 		Error:   &ErrorInfo{Code: code, Message: message},
 	})
 }
 
-func (o *Output) printJSON(resp Response) {
+func (o *Output) encode(v any) {
 	enc := json.NewEncoder(o.w)
 	enc.SetIndent("", "  ")
-	if err := enc.Encode(resp); err != nil {
-		fmt.Fprintf(os.Stderr, "output: json encoding error: %v\n", err)
-	}
-}
-
-func (o *Output) prettyJSON(data any) {
-	enc := json.NewEncoder(o.w)
-	enc.SetIndent("", "  ")
-	if err := enc.Encode(data); err != nil {
+	if err := enc.Encode(v); err != nil {
 		fmt.Fprintf(os.Stderr, "output: json encoding error: %v\n", err)
 	}
 }

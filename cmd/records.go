@@ -8,8 +8,6 @@ import (
 	"strings"
 
 	"github.com/andrejkostal/airtable-cli/internal/client"
-	"github.com/andrejkostal/airtable-cli/internal/config"
-	"github.com/andrejkostal/airtable-cli/internal/output"
 )
 
 // RecordsCmd queries and manages table records.
@@ -36,23 +34,8 @@ type RecordsListCmd struct {
 
 // Run lists records from a table.
 func (c *RecordsListCmd) Run(globals *Globals) error {
-	out := output.New(os.Stdout, globals.Human)
-
-	pat := resolvePAT(globals)
-	if pat == "" {
-		out.Error("AUTH_REQUIRED", "No PAT configured. Set AIRTABLE_PAT env var or run: airtable config set pat <token>")
-		return nil
-	}
-
-	cfg, err := config.Load(globals.Config)
-	if err != nil {
-		out.Error("VALIDATION_ERROR", err.Error())
-		return nil
-	}
-
-	baseID := resolveBase("", globals, cfg)
-	if baseID == "" {
-		out.Error("VALIDATION_ERROR", "No base specified. Use -b <baseId> or set default: airtable config set base <baseId>")
+	out, cl, baseID := mustBase(globals, "")
+	if cl == nil {
 		return nil
 	}
 
@@ -75,8 +58,6 @@ func (c *RecordsListCmd) Run(globals *Globals) error {
 		PageSize:              c.Limit,
 		ReturnFieldsByFieldId: c.WithFieldIds,
 	}
-
-	cl := client.New(pat)
 
 	if c.All {
 		records, err := cl.ListAllRecords(baseID, c.Table, params)
@@ -105,27 +86,12 @@ type RecordsGetCmd struct {
 
 // Run gets a single record.
 func (c *RecordsGetCmd) Run(globals *Globals) error {
-	out := output.New(os.Stdout, globals.Human)
-
-	pat := resolvePAT(globals)
-	if pat == "" {
-		out.Error("AUTH_REQUIRED", "No PAT configured. Set AIRTABLE_PAT env var or run: airtable config set pat <token>")
+	out, cl, baseID := mustBase(globals, "")
+	if cl == nil {
 		return nil
 	}
 
-	cfg, err := config.Load(globals.Config)
-	if err != nil {
-		out.Error("VALIDATION_ERROR", err.Error())
-		return nil
-	}
-
-	baseID := resolveBase("", globals, cfg)
-	if baseID == "" {
-		out.Error("VALIDATION_ERROR", "No base specified. Use -b <baseId> or set default: airtable config set base <baseId>")
-		return nil
-	}
-
-	record, err := client.New(pat).GetRecord(baseID, c.Table, c.RecordId)
+	record, err := cl.GetRecord(baseID, c.Table, c.RecordId)
 	if err != nil {
 		out.Error(errorCode(err), err.Error())
 		return nil
@@ -144,23 +110,8 @@ type RecordsCreateCmd struct {
 
 // Run creates record(s) from JSON fields flag or stdin.
 func (c *RecordsCreateCmd) Run(globals *Globals) error {
-	out := output.New(os.Stdout, globals.Human)
-
-	pat := resolvePAT(globals)
-	if pat == "" {
-		out.Error("AUTH_REQUIRED", "No PAT configured. Set AIRTABLE_PAT env var or run: airtable config set pat <token>")
-		return nil
-	}
-
-	cfg, err := config.Load(globals.Config)
-	if err != nil {
-		out.Error("VALIDATION_ERROR", err.Error())
-		return nil
-	}
-
-	baseID := resolveBase("", globals, cfg)
-	if baseID == "" {
-		out.Error("VALIDATION_ERROR", "No base specified. Use -b <baseId> or set default: airtable config set base <baseId>")
+	out, cl, baseID := mustBase(globals, "")
+	if cl == nil {
 		return nil
 	}
 
@@ -169,8 +120,6 @@ func (c *RecordsCreateCmd) Run(globals *Globals) error {
 		out.Error("VALIDATION_ERROR", err.Error())
 		return nil
 	}
-
-	cl := client.New(pat)
 
 	// Try parsing as array first.
 	var arr []map[string]any
@@ -210,23 +159,8 @@ type RecordsUpdateCmd struct {
 
 // Run updates a record.
 func (c *RecordsUpdateCmd) Run(globals *Globals) error {
-	out := output.New(os.Stdout, globals.Human)
-
-	pat := resolvePAT(globals)
-	if pat == "" {
-		out.Error("AUTH_REQUIRED", "No PAT configured. Set AIRTABLE_PAT env var or run: airtable config set pat <token>")
-		return nil
-	}
-
-	cfg, err := config.Load(globals.Config)
-	if err != nil {
-		out.Error("VALIDATION_ERROR", err.Error())
-		return nil
-	}
-
-	baseID := resolveBase("", globals, cfg)
-	if baseID == "" {
-		out.Error("VALIDATION_ERROR", "No base specified. Use -b <baseId> or set default: airtable config set base <baseId>")
+	out, cl, baseID := mustBase(globals, "")
+	if cl == nil {
 		return nil
 	}
 
@@ -242,7 +176,7 @@ func (c *RecordsUpdateCmd) Run(globals *Globals) error {
 		return nil
 	}
 
-	record, err := client.New(pat).UpdateRecord(baseID, c.Table, c.RecordId, fields, c.Typecast)
+	record, err := cl.UpdateRecord(baseID, c.Table, c.RecordId, fields, c.Typecast)
 	if err != nil {
 		out.Error(errorCode(err), err.Error())
 		return nil
@@ -260,23 +194,8 @@ type RecordsDeleteCmd struct {
 
 // Run deletes record(s).
 func (c *RecordsDeleteCmd) Run(globals *Globals) error {
-	out := output.New(os.Stdout, globals.Human)
-
-	pat := resolvePAT(globals)
-	if pat == "" {
-		out.Error("AUTH_REQUIRED", "No PAT configured. Set AIRTABLE_PAT env var or run: airtable config set pat <token>")
-		return nil
-	}
-
-	cfg, err := config.Load(globals.Config)
-	if err != nil {
-		out.Error("VALIDATION_ERROR", err.Error())
-		return nil
-	}
-
-	baseID := resolveBase("", globals, cfg)
-	if baseID == "" {
-		out.Error("VALIDATION_ERROR", "No base specified. Use -b <baseId> or set default: airtable config set base <baseId>")
+	out, cl, baseID := mustBase(globals, "")
+	if cl == nil {
 		return nil
 	}
 
@@ -284,8 +203,6 @@ func (c *RecordsDeleteCmd) Run(globals *Globals) error {
 		out.Error("VALIDATION_ERROR", "at least one record ID is required")
 		return nil
 	}
-
-	cl := client.New(pat)
 
 	if len(c.RecordIds) == 1 {
 		if err := cl.DeleteRecord(baseID, c.Table, c.RecordIds[0]); err != nil {

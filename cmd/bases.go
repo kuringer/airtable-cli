@@ -1,10 +1,7 @@
 package cmd
 
 import (
-	"os"
-
 	"github.com/andrejkostal/airtable-cli/internal/client"
-	"github.com/andrejkostal/airtable-cli/internal/output"
 )
 
 // BasesCmd lists accessible Airtable bases.
@@ -17,15 +14,12 @@ type BasesListCmd struct{}
 
 // Run lists all accessible bases.
 func (c *BasesListCmd) Run(globals *Globals) error {
-	out := output.New(os.Stdout, globals.Human)
-
-	pat := resolvePAT(globals)
-	if pat == "" {
-		out.Error("AUTH_REQUIRED", "No PAT configured. Set AIRTABLE_PAT env var or run: airtable config set pat <token>")
+	out, cl := mustAuth(globals)
+	if cl == nil {
 		return nil
 	}
 
-	bases, err := client.New(pat).ListBases()
+	bases, err := cl.ListBases()
 	if err != nil {
 		code := errorCode(err)
 		out.Error(code, err.Error())
