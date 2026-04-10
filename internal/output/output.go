@@ -83,6 +83,7 @@ func (o *Output) Error(code, message string) {
 
 func (o *Output) printJSON(resp Response) {
 	enc := json.NewEncoder(o.w)
+	enc.SetIndent("", "  ")
 	if err := enc.Encode(resp); err != nil {
 		fmt.Fprintf(os.Stderr, "output: json encoding error: %v\n", err)
 	}

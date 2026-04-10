@@ -44,10 +44,16 @@ airtable bases list
 
 ### Step 2: Inspect schema (tables, fields, views)
 ```bash
-airtable schema                          # uses default base
-airtable schema appXXXXXX               # specific base
-airtable schema -b crm                  # via alias
+airtable schema --tables                 # table list only (~5KB)
+airtable schema --fields-only            # table + field name:type (~18KB)
+airtable schema --fields-only -t Tasks   # single table fields (~2KB)
+airtable schema --compact                # structured, no options/IDs (~47KB)
+airtable schema -t Tasks                 # full detail for one table
+airtable schema                          # full schema (large ~184KB)
+airtable schema -b crm                   # via alias
 ```
+
+Agent-recommended flow: `--tables` first, then `--fields-only -t X` to drill in.
 
 ### Step 3: Read records
 ```bash
@@ -144,7 +150,11 @@ Error:
 
 ```
 airtable bases list                                # list all bases
-airtable schema [base]                             # tables, fields, views
+airtable schema [base] [flags]                     # tables, fields, views
+  --tables                                         # table list only (name, ID, counts)
+  --fields-only                                    # minimal: table + field name:type
+  --compact                                        # no field options, no IDs
+  -t <table>                                       # filter to single table
 
 airtable records list <table> [flags]              # list records
 airtable records get <table> <recordId>            # get one record
