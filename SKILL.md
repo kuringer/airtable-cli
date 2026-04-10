@@ -45,7 +45,7 @@ airtable bases list
 ### Step 2: Inspect schema (tables, fields, views)
 ```bash
 airtable schema --tables                 # table list only (~5KB)
-airtable schema --fields-only            # table + field name:type (~18KB)
+airtable schema --fields-only            # table + field name(type) (~18KB)
 airtable schema --fields-only -t Tasks   # single table fields (~2KB)
 airtable schema --compact                # structured, no options/IDs (~47KB)
 airtable schema -t Tasks                 # full detail for one table
@@ -152,7 +152,7 @@ Error:
 airtable bases list                                # list all bases
 airtable schema [base] [flags]                     # tables, fields, views
   --tables                                         # table list only (name, ID, counts)
-  --fields-only                                    # minimal: table + field name:type
+  --fields-only                                    # minimal: table + field name(type)
   --compact                                        # no field options, no IDs
   -t <table>                                       # filter to single table
 

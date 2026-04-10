@@ -13,9 +13,9 @@ import (
 type SchemaCmd struct {
 	Base       string `arg:"" optional:"" help:"Base ID or alias (uses default if omitted)."`
 	Table      string `short:"t" help:"Filter to a single table (name or ID)."`
-	Tables     bool   `help:"List tables only (name, ID, field/view counts)."`
-	Compact    bool   `help:"Omit field options and IDs for compact output."`
-	FieldsOnly bool   `name:"fields-only" help:"Minimal output: table names with field name:type pairs only (~3KB)."`
+	Tables     bool   `xor:"mode" help:"List tables only (name, ID, field/view counts)."`
+	Compact    bool   `xor:"mode" help:"Omit field options and IDs for compact output."`
+	FieldsOnly bool   `name:"fields-only" xor:"mode" help:"Minimal output: table names with field name(type) pairs only."`
 }
 
 // TableSummary is the compact tables-only view.
